@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://d3js.org/topojson.v0.min.js"></script>
+    <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js'></script>
+
+
+    <style type="text/css">
+        .states {
+                fill: #aaa;
+                stroke: #fff;
+                stroke-width: 0.75px;
+        }
+        #map {
+            margin:2%;
+            padding:20px;
+            border:2px solid #d0d0d0;
+            border-radius: 5px;
+        }
+
+        /* On mouse hover, lighten state color */
+        path:hover {
+/*            fill-opacity: .7;
+*/        }
+
+        /* Style for Custom Tooltip */
+        div.tooltip {   
+            position: absolute;           
+            text-align: center;           
+            width: 100px;                  
+            height: auto;                 
+            padding: 2px;             
+            font: 12px sans-serif;        
+            background: white;   
+            border: 0px;      
+            border-radius: 8px;           
+            pointer-events: none;         
+        }
+            
+        /* Legend Font Style */
+        body {
+            font: 11px sans-serif;
+        }
+                
+        /* Legend Position Style */
+        .legend {
+            position:absolute;
+            left:800px;
+            top:350px;
+        }
+    </style>
+
+  </head>
+
+  <body>
+    
+
+
+    <body onload="sizeChange()">
+            
+        <div class="container">
+            <div id="map"></div>
+        </div>
+            
+        <script type="text/javascript">
+
+            d3.select(window)
+                    .on("resize", sizeChange);
+        
+            var projection = d3.geo.albersUsa()
+                .scale(1100);
+        
+            var path = d3.geo.path()
+                .projection(projection);
+        
+            var svg = d3.select("#map")
+                .append("svg")
+                .attr("width", "100%")
+                    .append("g");
+            
+            d3.json("us-states.json", function(error, us) {
+                svg.selectAll(".states")
+                .data(topojson.object(us, us.objects.states).geometries)
+                .enter().append("path")
+                .attr("class", "states")
+                .attr("d", path);
+            });
+                
+        
+            function sizeChange() {
+                d3.select("g").attr("transform", "scale(" + $("#map").width()/900 + ")");
+                $("svg").height($("#map").width()*0.618);
+            }
+            
+            // Append Div for tooltip to SVG
+            var div = d3.select("body")
+                        .append("div")   
+                        .attr("class", "tooltip")               
+                        .style("opacity", 0);
+
+                // d3.csv("cities-lived.csv", function(data) {
+                setTimeout(function() {
+                d3.json("cities-lived.json", function(data) {
+                    data.forEach(function(d) {
+                        svg.selectAll("circle")
+                            .data(data)
+                            .enter()
+                            .append("circle")
+                            .attr("cx", function(d) {
+                                return projection([d.lng, d.lat])[0];
+                            })
+                            .attr("cy", function(d) {
+                                return projection([d.lng, d.lat])[1];
+                            })
+                            .attr("r", function(d) {
+                                return Math.sqrt(d.price) * 4;
+                            })
+                                .style("fill", "rgb(217,91,67)")	
+                                .style("opacity", 0.85)	
+                        
+                            .on("mouseover", function(d) {      
+                                div.transition()        
+                                    .duration(200)      
+                                .style("opacity", .9);      
+                                div.html('<p>City:'+d.city+'</p><p>Price: $'+d.price.toFixed(2)+'</p>')
+                                .style("left", (d3.event.pageX) + "px")     
+                                .style("top", (d3.event.pageY - 28) + "px");    
+                            })   
+                        
+                            // fade out tooltip on mouse out               
+                            .on("mouseout", function(d) {       
+                                div.transition()        
+                                .duration(500)      
+                                .style("opacity", 0);
+                            });
+                    });
+                    
+                })
+            }, 1000)
+            
+
+            
+    </script>
+
+    <script>
+        $( document ).ready(function() {
+            
+
+            function populateMap(val) {
+                $('#map').html('');
+
+                projection = d3.geo.albersUsa()
+                .scale(1100);
+        
+                path = d3.geo.path()
+                    .projection(projection);
+            
+                svg = d3.select("#map")
+                    .append("svg")
+                    .attr("width", "100%")
+                        .append("g");
+                
+                d3.json("us-states.json", function(error, us) {
+                    svg.selectAll(".states")
+                    .data(topojson.object(us, us.objects.states).geometries)
+                    .enter().append("path")
+                    .attr("class", "states")
+                    .attr("d", path);
+                });
+
+                // Append Div for tooltip to SVG
+                div = d3.select("body")
+                .append("div")   
+                .attr("class", "tooltip")               
+                .style("opacity", 0);
+
+                sizeChange();
+
+                axios.get('https://api.mlab.com/api/1/databases/data-items/collections/datas?q={"item": "' + val +'"}&apiKey=i1JBzVTUX-8jEq_wjl9gGQjuvj2MthLo').then(function(res) {
+                    console.log(res.data)
+                    
+                    drawCities(res.data[0].values)
+                }).catch(function(err) {
+                    console.log(err)
+                })
+            }
+        });
+
+    </script>
+  </body>
+</html>
